@@ -1,4 +1,4 @@
-package ch.menneri.jmail
+package ch.menneri.smails
 
 import com.typesafe.config.ConfigFactory
 import java.io.File
@@ -46,7 +46,7 @@ object Main extends App {
   
   var i = 1
   messages.foreach { message => 
-    println(s"* writing message $i/$count")
+    println(s"* writing message $i/$count" + message.getSubject)
     mboxFolder.appendMessages(Array(message))
     i = i + 1
   }
