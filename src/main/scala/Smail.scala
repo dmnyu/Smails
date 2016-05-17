@@ -9,12 +9,20 @@ import net.fortuna.mstor._
 
 trait SmailSupport {
 
-  def acquireAccount(service: String, port: Int, account: String, password: String) {
+  def acquireAccount(service: String, port: Int, account: String, password: String, folder: Option[String]) {
 
     val props = System.getProperties
     val session = Session.getDefaultInstance(props, null)
     val store = session.getStore("imaps")
-    store.connect(service, port, account, password)
+    
+    try {
+      store.connect(service, port, account, password)
+    }  catch {
+      case a: AuthenticationFailedException => {
+        println(a.getMessage)
+        System.exit(1)
+      }
+    }
     
     store.isConnected match {
       case true => println("* connected to imap server")
@@ -25,24 +33,40 @@ trait SmailSupport {
     }
 
     val mailRoot = store.getDefaultFolder
-    val folders = mailRoot.list("*")
 
-    folders.foreach{ folder =>
-      val imapFolder = folder.getName
-      folder.open(Folder.READ_ONLY)
-      val count = folder.getMessageCount
-      val messages = folder.getMessages
+    folder match {
+      case f: Some[String] => {
+        println(s"* Acquiring folder ${f.get} from email account: $account")
+        val fldr = f.get
+        acqFolder(mailRoot.getFolder(fldr))
+      }
+      case None => {
+        println(s"* Acquiring all folders from email account: $account")
+        acqAllFolders()
+      }
+    }
+
+    def acqAllFolders() {
+      val folders = mailRoot.list("*")
+      folders.foreach { folderName => acqFolder(folderName) }
+    }
+
+    def acqFolder(fldr: Folder) {
+      val imapFolder = fldr.getName
+      fldr.open(Folder.READ_ONLY)
+      val count = fldr.getMessageCount
+      val messages = fldr.getMessages
       println(s"* writing $count messages to local mbox file")   
       val mboxLocation = getMboxLocation("mbox", account, imapFolder)
       val mbox = new Mbox(mboxLocation)
       val mboxFolder = mbox.getMbox(imapFolder)
       var i = 1
       messages.foreach { message => 
-        println(s"* writing message $i/$count" + message.getSubject)
+        if(i % 25 == 0) { println(s"* writing message $i/$count") }
         mboxFolder.appendMessages(Array(message))
         i = i + 1
       }
-      mbox.close
+      mbox.close  
     }
     
     store.close
