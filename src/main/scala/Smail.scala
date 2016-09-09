@@ -9,7 +9,7 @@ import net.fortuna.mstor._
 
 trait SmailSupport {
 
-  def acquireAccount(service: String, port: Int, account: String, password: String, folder: Option[String]) {
+  def acquireAccount(service: String, port: Int, account: String, password: String, folder: Option[String], localDirectory: String) {
 
     val props = System.getProperties
     val session = Session.getDefaultInstance(props, null)
@@ -38,26 +38,26 @@ trait SmailSupport {
       case f: Some[String] => {
         println(s"* Acquiring folder ${f.get} from email account: $account")
         val fldr = f.get
-        acqFolder(mailRoot.getFolder(fldr))
+        acqFolder(mailRoot.getFolder(fldr), localDirectory)
       }
       case None => {
         println(s"* Acquiring all folders from email account: $account")
-        acqAllFolders()
+        acqAllFolders(localDirectory)
       }
     }
 
-    def acqAllFolders() {
+    def acqAllFolders(localDirectory: String) {
       val folders = mailRoot.list("*")
-      folders.foreach { folderName => acqFolder(folderName) }
+      folders.foreach { folderName => acqFolder(folderName, localDirectory) }
     }
 
-    def acqFolder(fldr: Folder) {
+    def acqFolder(fldr: Folder, localDirectory: String) {
       val imapFolder = fldr.getName
       fldr.open(Folder.READ_ONLY)
       val count = fldr.getMessageCount
       val messages = fldr.getMessages
       println(s"* writing $count messages to local mbox file")   
-      val mboxLocation = getMboxLocation("mbox", account, imapFolder)
+      val mboxLocation = getMboxLocation(localDirectory, account, imapFolder)
       val mbox = new Mbox(mboxLocation)
       val mboxFolder = mbox.getMbox(imapFolder)
       var i = 1
@@ -76,28 +76,31 @@ trait SmailSupport {
     
     val rootMbox = new File(root)
 
-    if(rootMbox.exists == false) { 
-      println("* root folder doesn't exist")
-      rootMbox.mkdir
+    rootMbox.exists match {
+      case true =>  println(s"* Directory $rootMbox exists.") 
+      case false => {
+        println(s"* Root folder doesn't exist, creating $rootMbox")
+        rootMbox.mkdir
+      }
     }
 
     val addr = addressee.split("@")(0) + "_AT_" + addressee.split("@")(1).split("\\.")(0) + "_DOT_" + addressee.split("@")(1).split("\\.")(1)
     val accountFolder = new File(rootMbox, addr)
     
     accountFolder.exists match {
-      case true => println(s"* folder for account $addr exists")
+      case true => println(s"* Folder for account $addr exists.")
       case false => {
+        println(s"* Account folder doesn't exist, creating directory $addr.")
         accountFolder.mkdir
-        println(s"* account folder created for $addr")
       }
     }
     val localMbox = new File(accountFolder, folder)
 
     localMbox.exists match {
-      case true => println(s"* local mbox file $folder already exists")
+      case true => println(s"* Local mbox file $folder exists.")
       case false => { 
+        println(s"* Local mbox file doesn't exist, creating $folder.")
         localMbox.createNewFile
-        println(s"* local mbox file $folder created")
       }
     }
 

@@ -9,6 +9,7 @@ class CLIConf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val service = opt[String](required = true)
   val email = opt[String](required = true)
   val folder = opt[String](required = false)
+  val local = opt[String](required = false)
   verify()
 }
 
@@ -26,7 +27,10 @@ object Main extends App with SmailSupport {
 
   val password = getPassword
 
-  acquireAccount(conf.getString(s"smail.${cli.service()}"), conf.getInt("smail.port"), cli.email(), password, cli.folder.get)
+  cli.local.get match {
+    case rootDirectory: Some[String] => acquireAccount(conf.getString(s"smail.${cli.service()}"), conf.getInt("smail.port"), cli.email(), password, cli.folder.get, rootDirectory.get)
+    case None => acquireAccount(conf.getString(s"smail.${cli.service()}"), conf.getInt("smail.port"), cli.email(), password, cli.folder.get, "mbox")
+  }
 
   def getPassword(): String = {
     println(s"enter the password for ${cli.email()}")
