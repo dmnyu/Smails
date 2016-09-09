@@ -62,7 +62,7 @@ trait SmailSupport {
       val mboxFolder = mbox.getMbox(imapFolder)
       var i = 1
       messages.foreach { message => 
-        if(i % 25 == 0) { println(s"* writing message $i/$count") }
+        if(i % 10 == 0) { println(s"* writing message $i/$count") }
         mboxFolder.appendMessages(Array(message))
         i = i + 1
       }
