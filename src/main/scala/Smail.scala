@@ -62,7 +62,7 @@ trait SmailSupport {
       val mboxFolder = mbox.getMbox(imapFolder)
       var i = 1
       messages.foreach { message => 
-        if(i % 10 == 0) { println(s"* writing message $i/$count") }
+        if(i % 25 == 0) { println(s"* writing message $i/$count") }
         mboxFolder.appendMessages(Array(message))
         i = i + 1
       }
@@ -75,10 +75,15 @@ trait SmailSupport {
   def getMboxLocation(root: String, addressee: String, folder: String): File = {
     
     val rootMbox = new File(root)
-    if(rootMbox.exists == false) rootMbox.createNewFile
+
+    if(rootMbox.exists == false) { 
+      println("* root folder doesn't exist")
+      rootMbox.mkdir
+    }
 
     val addr = addressee.split("@")(0) + "_AT_" + addressee.split("@")(1).split("\\.")(0) + "_DOT_" + addressee.split("@")(1).split("\\.")(1)
     val accountFolder = new File(rootMbox, addr)
+    
     accountFolder.exists match {
       case true => println(s"* folder for account $addr exists")
       case false => {
