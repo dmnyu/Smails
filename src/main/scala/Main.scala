@@ -17,7 +17,9 @@ class CLIConf(arguments: Seq[String]) extends ScallopConf(arguments) {
 object Main extends App with SmailSupport {
 
   println("smail v.0.1")
-  val conf = ConfigFactory.load()
+
+  val c = new java.io.File("imap.conf")
+  val conf = ConfigFactory.parseFile(c)
   val cli = new CLIConf(args)
   
   validateAddr(cli.email()) match {
@@ -25,11 +27,15 @@ object Main extends App with SmailSupport {
     case _ =>
   }
 
+  val service = cli.service.get.get
+  val url = conf.getString(s"$service.url")
+  val port = conf.getInt(s"$service.port")
   val password = getPassword
-
+  
+  
   cli.local.get match {
-    case rootDirectory: Some[String] => acquireAccount(conf.getString(s"smail.${cli.service()}"), conf.getInt("smail.port"), cli.email(), password, cli.folder.get, rootDirectory.get)
-    case None => acquireAccount(conf.getString(s"smail.${cli.service()}"), conf.getInt("smail.port"), cli.email(), password, cli.folder.get, "mbox")
+    case rootDirectory: Some[String] => acquireAccount(url, port, cli.email(), password, cli.folder.get, rootDirectory.get)
+    case None => acquireAccount(url, port, cli.email(), password, cli.folder.get, "mbox")
   }
 
   def getPassword(): String = {
